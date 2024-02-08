@@ -47,7 +47,59 @@ export const Boxes2 = ({ length = 48, ...props }) => {
         let i =0;
         for (let j = 0; j< length; j++) {
             const id = i++;
-        }
-    })
 
-}
+            const point = crv.current.getPoint(j / length);
+            const tangent = crv.current.getTangent(j / length);
+
+            const yaw = Math.atan2(tangent.y, tangent.x);
+            const pitch = Math.atan2(
+                tangent.z,
+                Math.sqrt(tangent.x * tangent.x + tangent.y * tangent.y)
+            );
+            o.position.copy(point);
+            o.rotation.set(0, pitch + 0.075 * j, yaw);
+            o.rotateX(t * 1.15 + (2 * Math.PI) / length);
+            o.scale.x = o.scale.y = o.scale.z = 0.15 + useMainStore.getState().freq.average / 3;
+            o.updateMatrix();
+            ref.current.setMatrixAt(id, o.matrix);
+        }
+        ref.current.instanceMatrix.needsUpdate = true;
+    });
+
+    return (
+        <group {...props}>
+            <instancedMesh ref={ref} args={[null, null, length]}>
+            <capsuleGeometry args={[0.5, 1.8, 24, 24]} />
+            <Material/>
+            </instancedMesh>
+        </group>
+    );
+};
+
+const Material = () => {
+    const materialRef = useRef();
+    const colorRef = useRef(1);
+    useFrame((state) => {});
+    return (
+        <LayerMaterial
+            lighting="physical"
+            color="pink"
+            transmission={0}
+            roughness={0.35}
+        >
+            <Gradient
+                ref={materialRef}
+                colorA={"black"}
+                colorB={[colorRef.current, colorRef.current, 0.1]}
+                alpha={1}
+                contrast={1}
+                start={-0.5}
+                end={3}
+                axes={"y"}
+            />
+
+            <Noise scale={60} type="pelin" mode="reflect" alpha={0.03}/>
+            <Displace scale={20} strength={0.0} />
+        </LayerMaterial>
+    );
+};

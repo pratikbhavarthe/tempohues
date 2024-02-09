@@ -27,7 +27,25 @@ export const Analyzer = ({ sound }) => {
         }
     };
 
-    
+    useFrame(({ clock }, dt) => {
+        if (analyser.current) {
+            const freqData = analyser.current.getFrequencyData();
 
+            setFreq(
+                freqSlice(freqData, 0, 512),
+                freqSlice(freqData, 0, 6),
+                freqSlice(freqData, 64, 64),
+                freqSlice(freqData, 164, 24)
+            );
 
-}
+            handleSignalToImpulse(
+                lowLock, freqSlice(freqData, 0, 6), 0.85, setSignalLow
+            );
+            handleSignalToImpulse(
+                highLock, freqSlice(freqData, 128, 64), 0.6, setSignalHigh
+            );
+        }
+    });
+
+    return <></>
+};

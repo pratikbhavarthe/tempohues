@@ -94,7 +94,67 @@ export const MeshTransmissionMaterial = forwardRef(
         },
         fref
     ) => {
-        
+        extend({ MeshTransmissionMaterial: MeshTransmissionMaterialImpl });
+
+        const ref = useRef(null);
+        const [discardMaterial] = useState(() => new DiscardMaterial());
+        const fboBack = useFBO(backsideResolution || resolution);
+        const fboMain = useFBO(resolution);
+
+        let oldBg;
+        let oldTone;
+        let parent;
+        useFrameState((state) => {
+            ref.current.time = state.clock.getElapsedTime();
+            if (ref .current.buffer === fboMain.texture && !transmissionSampler) {
+                if (parent) {
+                    oldTone = state.gl.toneMapping;
+                    oldBg = state.scene.background;
+
+                    state.gl.toneMapping = THREE.NoToneMapping;
+                    if(background) state.scene.background = background;
+                    parent.material = discardMaterial;
+
+                    if (backside) {
+                        state.gl.setRenderTarget(fboBack);
+                        state.gl.render(state.scene, state.camera);
+                        parent.material = ref.current;
+                        parent.material.buffer = fboBack.texture;
+                        parent.material.thickness = backsideThickness;
+                        parent.material.side = THREE.BackSide;
+                    }
+
+                    state.gl.setRenderTarget(fboMain);
+                    state.gl.render(state.scene, state.camera);
+
+                    parent.material.thickness = thickness;
+                    parent.material.side = side;
+                    parent.material.buffer = fboMain.texture;
+
+                    state.scene.background = oldBg;
+                    state.gl.setRenderTarget(null);
+                    parent.material = ref.current;
+                    state.gl.toneMapping = oldTone;
+                }
+            }
+        });
+
+        useImperativeHandle(fref, () => ref.current, []);
+
+        return (
+            <meshTransmissionMaterial
+            args={[samples, transmissionSampler]}
+            ref={ref}
+            {...props}
+            buffer={buffer || fboMain.texture}
+            _transmission={transmission}
+            transmission={transmissionSampler ? transmission : 0}
+            thickness={thickness}
+            scale={scale}
+            displacement={displacement}
+            side={side}
+            />
+        );
     }
-)
+);
 
